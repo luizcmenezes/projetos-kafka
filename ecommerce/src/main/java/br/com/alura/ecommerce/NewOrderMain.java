@@ -1,29 +1,37 @@
 package br.com.alura.ecommerce;
 
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 public class NewOrderMain {
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         var producer = new KafkaProducer<String, String>(properties());
-        var value = "123123,654684,1234";
-        var record = new ProducerRecord<>("ECOMMERCE_NEW_ORDER", value, value);
-        producer.send(record, (data, ex) -> {
-            if (ex != null){
+        for (var i = 0; i < 100; i++){
+            var key = UUID.randomUUID().toString();
+            var value = key + ",654684,1234";
+            var email = "Thanl you for your order! Welcome! We are processing your order!";
+            var record = new ProducerRecord<>("ECOMMERCE_NEW_ORDER", key, value);
+            var emailRecord = new ProducerRecord<>("ECOMMERCE_SEND_EMAIL", key, email);
+            producer.send(record, getCallback()).get();
+            producer.send(emailRecord, getCallback()).get();
+        }
+    }
+
+    private static Callback getCallback() {
+        return (data, ex) -> {
+            if (ex != null) {
                 ex.printStackTrace();
                 return;
             }
             System.out.println("SUCCESS SEND " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestemp " + data.timestamp());
-        }).get();
+        };
     }
 
     private static Properties properties() {
